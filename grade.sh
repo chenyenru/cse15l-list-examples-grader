@@ -6,7 +6,7 @@ rm -rf grading-area
 mkdir grading-area
 
 git clone $1 student-submission
-echo 'Finished cloning'
+# echo 'Finished cloning'
 
 
 # Draw a picture/take notes on the directory structure that's set up after
@@ -33,29 +33,36 @@ do
     cp $file grading-area/
 done
 
+found=false
 echo "Checking on files"
 cd grading-area
-
+echo `ls`
+set +e
 for file in *.java
 do
     if [[ -f "$file" && "$file" == ListExamples.java ]]
     then 
-        javac -cp .:lib/hamcrest-core-1.3.jar:lib/junit-4.13.2.jar "$file"
+        found=true
+        javac -cp .:lib/hamcrest-core-1.3.jar:lib/junit-4.13.2.jar "$file" > ./output-test-result.txt
        
         exit_code=$?
-        echo "$exit_code"
-        if [ $exit_code -eq 1 ]
+        # echo "$exit_code"
+        if [ $exit_code -ne 0 ]
         then
-            echo "Exit Code 1"
+            "$(pwd): Compile Error" > ./output-result.txt
+            break
         fi
 
-        if [ $exit_code -eq 0 ]
-        then
-            echo "Exit Code 0"
-        fi
-
-
-        javac -cp .:lib/hamcrest-core-1.3.jar:lib/junit-4.13.2.jar TestListExamples.java ListExamples.java
-        java -cp  .:lib/hamcrest-core-1.3.jar:lib/junit-4.13.2.jar org.junit.runner.JUnitCore TestListExamples
+        javac -cp .:lib/hamcrest-core-1.3.jar:lib/junit-4.13.2.jar TestListExamples.java ListExamples.java 
+        java -cp  .:lib/hamcrest-core-1.3.jar:lib/junit-4.13.2.jar org.junit.runner.JUnitCore TestListExamples > ./output-test-result.txt
+        grep -h "Tests run" output-test-result.txt | awk '{print "Result: Getting " $5 - $3 " out of " $5 " right"}'
+        rm -r ./output-test-result.txt
     fi
 done 
+
+if [[ "$found"==false ]]
+then 
+    echo "Cannot find ListExamples.java" >> ./output-result.txt
+fi
+
+cat ./output-result.txt
